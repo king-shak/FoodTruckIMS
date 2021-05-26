@@ -1,0 +1,99 @@
+\qecho
+\qecho IT Crowd
+\qecho
+
+CREATE DATABASE project;
+\c project
+\qecho
+
+CREATE TABLE Address (
+	ID	Integer not null,
+	Street	VarChar(20) not null,
+	City	VarChar(20) not null,
+	State	VarChar(20) not null,
+	Zip	Integer not null,
+	
+	Primary Key	(ID)
+);
+
+CREATE TABLE Truck (
+	ID	Integer not null,
+	AddressID	Integer not null,
+	Name	VarChar(30) not null unique,
+	Number	VarChar(10) not null,
+
+	Primary Key	(ID),
+	Foreign Key	(AddressID) references Address(ID)
+);
+
+CREATE TABLE MealType (
+	ID	Integer not null,
+	Description	VarChar(30) not null,
+
+	Primary Key	(ID)
+);
+
+CREATE TABLE Meal (
+	ID	Integer not null,
+	MealNumber	VarChar(20) not null unique,
+	Name	VarChar(20) not null,
+	TypeID	Integer not null,
+
+	Primary Key	(ID),
+	Foreign Key	(TypeID) references MealType(ID)
+);
+
+CREATE TABLE Inventory (
+	TruckID	Integer not null,
+	MealID	Integer not null,
+	Number	Integer not null,
+	
+	Foreign Key (TruckID) references Truck(ID),
+	Foreign Key (MealID) references Meal(ID)	     
+);
+
+CREATE TABLE Ingredient (
+	ID	Integer not null,
+	Name	VarChar(30) not null unique,
+
+	Primary Key	(ID)
+);
+
+CREATE TABLE MealIngredient (
+	MealID	Integer not null,
+	IngredientID	Integer not null,
+
+	Foreign Key	(MealID) references Meal(ID),
+	Foreign Key	(IngredientID) references Ingredient(ID)
+);
+
+\qecho
+\d
+
+\qecho
+\d Meal
+
+\qecho
+\d Inventory
+
+\qecho
+\d MealType
+
+\qecho
+\d MealIngredient
+
+\qecho
+\d Ingredient
+
+\qecho
+\d Truck
+
+\qecho
+\d PhoneInfo
+
+\qecho
+\d Address
+
+\qecho
+\c postgres
+DROP DATABASE project;

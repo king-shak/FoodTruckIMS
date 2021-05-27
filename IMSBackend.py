@@ -225,7 +225,7 @@ def search(truckName):
    if (request.method == 'POST'):
       searchQuery = request.form['query']
 
-      if (str.isspace(searchQuery) == False):
+      if (searchQuery != '' and str.isspace(searchQuery) == False):
          templateData['searchQuery'] = searchQuery
          print('Query: {0}'.format(searchQuery))
 

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+   <body style="background-color:#ffeecc;">
+      <left-align><a href="/"><img src={{ url_for('static', filename="foodtruck.png") }} alt="foodtruck" width="300" height="300"></a>
+      <center><h1 style="color:#336699;font-family:Garamond;font-size:60px">Search Meals</h1></center>
+      <center>
+         <form action="{{ url_for('search', truckName=name) }}" method="post">
+            {% if searchQuery == None %}
+               <input type="textbox" name="query" style="width:300px;height:40px;font-size:20px">
+            {% else %}
+               <input type="textbox" name="query" style="width:300px;height:40px;font-size:20px" value="{{ searchQuery }}">
+            {% endif %}
+            <input type="submit" style="height:50px;width:200px;font-size:20px;background-color:white;color:#336699" value="Search">
+         </form>
+      </center>
+
+      {% if searchResults != None %}
+         {% for item in searchResults %}
+            <p style="border:3px; border-style:solid; border-color:#336699"><h1 style="font-size=40px">Truck Name: {{ item[0] }}</h1>
+            <h1 style="font-size=40px">Meal Name: {{ item[1] }}</h1>
+            <h1 style="font-size=40px">Available Meals: {{ item[2] }}</h1>
+            <h1 style="font-size=40px">Location: {{ item[3] }} {{ item[4] }} {{ item[5] }} {{ item[6] }}</h1></p>
+         {% endfor %}
+      {% else %}
+         {% if searchQuery != None %}
+            <h1 style="font-size=40px">No Results Found</h1>
+         {% endif %}
+      {% endif %}
+      
+      <p><center><a href="/{{ name }}/menu"><button style="height:50px;width:200px;font-size:30px;background-color:white;color:#336699">Menu</button></a>
+   </body>
+  </html>

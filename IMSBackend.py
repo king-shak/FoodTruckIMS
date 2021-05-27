@@ -235,7 +235,7 @@ def search(truckName):
                            JOIN Inventory ON (Truck.ID = Inventory.TruckID)
                            JOIN Meal ON (Inventory.MealID = Meal.ID)
                         WHERE Meal.Name ILIKE '%{0}%'
-                        ORDER BY Meal.Name ASC
+                        ORDER BY Meal.Name ASC, Truck.Name ASC
                         '''.format(searchQuery)
          searchResults = execute_read_query(connection, select_query)
 

@@ -4,12 +4,17 @@
       <a href="/"><img src={{ url_for('static', filename="foodtruck.png") }} alt="foodtruck" width="300" height="300"></a>
       <center><h1 style="color:#336699;font-family:Garamond;font-size:60px">Ingredient List</h1></center>
       <h1>Add new ingredient:
-         <form action="{{ url_for('ingredients', truckName=name) }}" method="post">
+         <form action="{{ url_for('ingredientManager', truckName=name) }}" method="post">
             <input type="textbox" name="ingredientName" style="width:300px;height:40px;font-size:20px">
             <input type="submit" style="height:50px;width:200px;font-size:20px;background-color:white;color:#336699" value="Add Ingredient">
          </form>
       </h1>
       <h1 style="font-size=40px">Ingredients Available: </h1>
+      <ul>
+         {% for ingredient in ingredients %}
+            <li>{{ ingredient[0] }}</li>
+         {% endfor %}
+      </ul>
       <p><center><a href="/{{ name }}/menu"><button style="height:50px;width:200px;font-size:30px;background-color:white;color:#336699">Menu</button></a></p>
    </body>
 </html>

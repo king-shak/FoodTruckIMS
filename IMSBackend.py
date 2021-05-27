@@ -8,6 +8,8 @@ from flask_socketio import SocketIO, emit
 import psycopg2
 from psycopg2 import OperationalError
 
+os.environ["GEVENT_SUPPORT"] = 'True'
+
 # Credentials for the DB.
 DB_NAME = "project"
 USER = "postgres"
@@ -244,7 +246,43 @@ def search(truckName):
 
    return render_template('Search.html', **templateData)
 
-   
+@app.route("/<truckName>/ingredients", methods=['GET', 'POST'])
+def ingredientManager(truckName):
+   # Determine if we need to add a new ingredient.
+   if (request.method == 'POST'):
+      ingredientName = request.form['ingredientName']
+      if (ingredientName != '' and str.isspace(ingredientName) == False):
+         print('New Ingredient: {0}'.format(ingredientName))
+
+         # Put it in the database.
+         ingredient = [
+            (ingredientName)
+         ]
+
+         ingredient_record = ", ".join(["%s"] * len(ingredient))
+
+         insert_query = (f"INSERT INTO Ingredient (Name) VALUES ({ingredient_record})")
+
+         # Execute the INSERT command.
+         connection.rollback()
+         connection.autocommit = True
+         cursor = connection.cursor()
+         cursor.execute(insert_query, ingredient)
+
+   # Grab a list of all ingredients.
+   select_query = '''
+                  SELECT Ingredient.Name
+                  FROM Ingredient
+                  ORDER BY Ingredient.Name ASC
+                  '''
+   ingredients = execute_read_query(connection, select_query)
+
+   templateData = {
+      'name': truckName,
+      'ingredients': ingredients
+   }
+
+   return render_template('IngredientList.html', **templateData)
 
 if __name__ == "__main__":
    socketio.run(app, debug=True)

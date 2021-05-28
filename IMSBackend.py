@@ -146,6 +146,7 @@ def getMeals():
    select_query = '''
                   SELECT Meal.Name
                   FROM Meal
+                  ORDER BY Meal.Name ASC
                   '''
    return execute_read_query(connection, select_query)
 
@@ -179,8 +180,8 @@ def mealFleetSearch(searchQuery):
                      JOIN Inventory ON (Truck.ID = Inventory.TruckID)
                      JOIN Meal ON (Inventory.MealID = Meal.ID)
                   WHERE Meal.Name ILIKE '%{0}%'
-                  ORDER BY Meal.Name ASC, Truck.Name ASC
-                  '''.format(searchQuery)
+                  ORDER BY Truck.Name ASC
+                  '''.format(searchQuery.strip())
    return execute_read_query(connection, select_query)
 
 # Creates a meal given its attributes and links it to all trucks.
@@ -270,13 +271,13 @@ def getFleet():
    return execute_read_query(connection, select_query)
 
 # Gets the information of all trucks in the fleet except the one specified.
-def getAllTrucksExcept(truckName):
+def getAllTrucksInfo():
    select_query = '''
                   SELECT Truck.Name, Truck.Number, Address.Street, Address.City, Address.State, Address.Zip
                   FROM Truck
                      JOIN Address ON (Truck.AddressID = Address.ID)
-                  WHERE Truck.Name != '{0}'
-                  '''.format(truckName)
+                  ORDER BY Truck.Name ASC;
+                  '''
    return execute_read_query(connection, select_query)
 
 ###############
@@ -341,7 +342,7 @@ def menu(truckName):
 @app.route("/<truckName>/fleet")
 def fleet(truckName):
    # Query the DB for all trucks.
-   fleet = getAllTrucksExcept(truckName)
+   fleet = getAllTrucksInfo()
 
    templateData = {
       'name': truckName,

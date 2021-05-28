@@ -284,5 +284,157 @@ def ingredientManager(truckName):
 
    return render_template('IngredientList.html', **templateData)
 
+# Gets the selected ingredients from the form on the create meal page.
+def getIngredients(form):
+   ingredients = []
+
+   for key, value in form.items():
+      if (key != 'mealName' and key != 'mealType' and key != 'availNumber'):
+         ingredients.append(key)
+   
+   return ingredients
+
+def getMealTypeID(mealType):
+   select_query = '''
+                  SELECT MealType.ID
+                  FROM MealType
+                  WHERE MealType.Description = '{0}'
+                  '''.format(mealType)
+   return execute_read_query(connection, select_query)[0][0]
+
+def getTruckID(truckName):
+   select_query = '''
+                  SELECT Truck.ID
+                  FROM Truck
+                  WHERE Truck.Name = '{0}'
+                  '''.format(truckName)
+   return execute_read_query(connection, select_query)[0][0]
+
+def getMealID(mealName):
+   select_query = '''
+                  SELECT Meal.ID
+                  FROM Meal
+                  WHERE Meal.Name = '{0}'
+                  '''.format(mealName)
+   return execute_read_query(connection, select_query)[0][0]
+
+def getIngredientID(ingredientName):
+   select_query = '''
+                  SELECT Ingredient.ID
+                  FROM Ingredient
+                  WHERE Ingredient.Name = '{0}'
+                  '''.format(ingredientName)
+   return execute_read_query(connection, select_query)[0][0]
+
+# Creates a meal given its attributes and links it to all trucks.
+def addMealToDB(mealName, mealType, ingredients, truckName, availNumber):
+   print("name: {0}, type: {1}, ingredients: {2}, truckName: {3}, availNumber: {4}".format(mealName, mealType, ingredients, truckName, availNumber))
+
+   # First, create the meal entity itself.
+   connection.rollback()
+   connection.autocommit = True
+   cursor = connection.cursor()
+   cursor.execute('''
+                  INSERT INTO Meal (Name, TypeID)
+                  VALUES (%s, %s)''', (mealName, getMealTypeID(mealType)))
+
+   # Link all the ingredients.
+   mealIngredients = []
+
+   mealID = getMealID(mealName)
+   for ingredient in ingredients:
+      mealIngredients.append((mealID, getIngredientID(ingredient)))
+
+   mealIngredients_records = ", ".join(["%s"] * len(mealIngredients))
+
+   insert_query = f'''
+                  INSERT INTO MealIngredient (MealID, IngredientID)
+                  VALUES {mealIngredients_records}
+                  '''
+
+   connection.rollback()
+   connection.autocommit = True
+   cursor = connection.cursor()
+   cursor.execute(insert_query, mealIngredients)
+
+   # Link the new meal to the current truck.
+   connection.rollback()
+   connection.autocommit = True
+   cursor = connection.cursor()
+   cursor.execute('''
+                  INSERT INTO Inventory (TruckID, MealID, Number)
+                  VALUES (%s, %s, %s)''', (getTruckID(truckName), mealID, availNumber))
+
+   # Link the new meal to all other trucks.
+   # First, get a list of all trucks.
+   select_query = '''
+                  SELECT Truck.ID
+                  FROM Truck
+                  '''
+   trucksIDs = execute_read_query(connection, select_query)
+
+   # Now we build the things for our query.
+   inventory = []
+
+   for truckID in trucksIDs:
+      inventory.append((truckID, mealID, 0))
+
+   inventory_records = ", ".join(["%s"] * len(inventory))
+
+   insert_query = f'''
+                  INSERT INTO Inventory (TruckID, MealID, Number)
+                  VALUES {inventory_records}
+                  '''
+   
+   connection.rollback()
+   connection.autocommit = True
+   cursor = connection.cursor()
+   cursor.execute(insert_query, inventory)
+
+   # And we're done!
+
+@app.route("/<truckName>/create_meal", methods=['GET', 'POST'])
+def createMeal(truckName):
+   if (request.method == 'GET'):
+      # Get the different meal types.
+      select_query = '''
+                  SELECT MealType.Description
+                  FROM MealType
+                  ORDER BY MealType.Description ASC
+                  '''
+      mealTypes = execute_read_query(connection, select_query)
+
+      # Get all available ingredients.
+      select_query = '''
+                  SELECT Ingredient.Name
+                  FROM Ingredient
+                  ORDER BY Ingredient.Name ASC
+                  '''
+      availIngredients = execute_read_query(connection, select_query)
+
+      templateData = {
+         'name': truckName,
+         'mealTypes': mealTypes,
+         'availIngredients': availIngredients
+      }
+
+      # Return the page for them to create the meal.
+      return render_template('CreateMeal.html', **templateData)
+   else:
+      # Create the meal, and redirect them to the meal info page with the new
+      # meal selected.
+
+      # First, grab all the attributes of the meal.
+      mealName = request.form['mealName']
+      mealType = request.form['mealType']
+      availNumber = int(request.form['availNumber'])
+      ingredients = getIngredients(request.form)
+
+      # Create the meal.
+      addMealToDB(mealName, mealType, ingredients, truckName, availNumber)
+
+      # Redirect the user to the Meal Info page, selecting the new page.
+      return redirect(url_for('meal_info', truckName=truckName, mealName=mealName))
+
 if __name__ == "__main__":
    socketio.run(app, debug=True)

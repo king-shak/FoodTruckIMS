@@ -1,4 +1,5 @@
 from re import template
+import re
 from typing import DefaultDict
 from flask import Flask, render_template, redirect, url_for, request, Response, send_from_directory
 import os
@@ -76,6 +77,7 @@ def index():
    select_query = """
                   SELECT Truck.Name
                   FROM Truck
+                  ORDER BY Truck.Name ASC
                   """
    truckNames = execute_read_query(connection, select_query)
 
@@ -88,11 +90,37 @@ def index():
 def favicon(): 
     return send_from_directory(os.path.join(app.root_path, 'static'), 'foodtruck.png', mimetype='image/vnd.microsoft.icon')
 
-@app.route("/<truckName>")
+def getAddressID(truckName):
+   select_query = '''
+                  SELECT Truck.AddressID
+                  FROM Truck
+                  WHERE Truck.Name = '{0}'
+                  '''.format(truckName)
+   return execute_read_query(connection, select_query)[0][0]
+
+@app.route("/<truckName>", methods=['GET', 'POST'])
 def getTruckInfo(truckName):
+   # Check if they are updating the truk data.
+   if (request.method == 'POST'):
+      # Update truck data.
+      update_query = '''
+                     UPDATE Address
+                     SET Street = '{0}', City = '{1}', State = '{2}', Zip = '{3}'
+                     WHERE Address.ID = {4}
+                     '''.format(request.form['street'], request.form['city'], request.form['state'], request.form['zip'], getAddressID(truckName))
+      execute_query(connection, update_query)
+
+      # Update phone number.
+      update_query = '''
+                     UPDATE Truck
+                     SET Number = '{0}'
+                     WHERE Truck.Name = '{1}'
+                     '''.format(request.form['phoneNumber'], truckName)
+      execute_query(connection, update_query)
+
    # Query the DB for the truck info.
    select_query = '''
-                  SELECT Truck.Name, Truck.Number, Address.Street, Address.City, Address.State, Address.Zip
+                  SELECT Truck.Number, Address.Street, Address.City, Address.State, Address.Zip
                   FROM Truck
                      JOIN Address ON (Truck.AddressID = Address.ID)
                   WHERE Truck.Name = '{0}'
@@ -100,7 +128,7 @@ def getTruckInfo(truckName):
    truckInfo = execute_read_query(connection, select_query)
 
    templateData = {
-      'name': truckInfo[0][0],
+      'name': truckName,
       'truckInfo' : truckInfo
    }
    return render_template('FoodTruckInfo.html', **templateData)

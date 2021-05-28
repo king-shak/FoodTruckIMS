@@ -11,13 +11,18 @@ from psycopg2 import OperationalError
 
 os.environ["GEVENT_SUPPORT"] = 'True'
 
-# Credentials for the DB.
+##############################
+### CREDENTIALS FOR THE DB ###
+##############################
 DB_NAME = "project"
 USER = "postgres"
 PASSWORD = "foobar"
 HOST = "127.0.0.1"
 PORT = 5432
 
+#########################
+### DB HELPER METHODS ###
+#########################
 # This will create a connection with the database.
 def create_connection(db_name, db_user, db_password, db_host, db_port):
    connection = None
@@ -58,6 +63,9 @@ def execute_read_query(connection, query):
    except OperationalError as e:
       print(f"The error '{e}' occurred")
 
+################
+### DB SETUP ###
+################
 # Connect to the DB.
 connection = create_connection(DB_NAME, USER, PASSWORD, HOST, PORT)
 
@@ -65,7 +73,9 @@ connection = create_connection(DB_NAME, USER, PASSWORD, HOST, PORT)
 if (connection is None):
    quit()
 
-# Define all of our methods to query or perform CRUD operations on the database.
+##################
+### QUERY DEFS ###
+##################
 # Retrieves the ID of a truck given its name.
 def getTruckID(truckName):
    select_query = '''
@@ -269,7 +279,9 @@ def getAllTrucksExcept(truckName):
                   '''.format(truckName)
    return execute_read_query(connection, select_query)
 
-# Setup our Flask App
+###############
+### APP DEF ###
+###############
 app = Flask(__name__)
 socketio = SocketIO(app)
 

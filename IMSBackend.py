@@ -394,15 +394,19 @@ def menu(truckName):
 
 @app.route("/<truckName>/fleet")
 def fleet(truckName):
-   # Query the DB for all trucks.
-   fleet = getAllTrucksInfo()
+   # First, make sure the truck name is valid.
+   if (isValidTruck(truckName)):
+      # Query the DB for all trucks.
+      fleet = getAllTrucksInfo()
 
-   templateData = {
-      'name': truckName,
-      'fleet': fleet
-   }
+      templateData = {
+         'name': truckName,
+         'fleet': fleet
+      }
 
-   return render_template('Fleet.html', **templateData)
+      return render_template('Fleet.html', **templateData)
+   else:
+      return render_template('404Page.html')
 
 @app.route("/<truckName>/meal_info/<mealName>")
 def meal_info(truckName, mealName):

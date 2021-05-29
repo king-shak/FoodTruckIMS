@@ -316,6 +316,15 @@ def isValidMeal(mealName):
    
    return False
 
+def isValidIngredient(ingredientName):
+   ingredients = getAllIngredients()
+
+   for ingredient in ingredients:
+      if (ingredients[0] == ingredientName):
+         return True
+   
+   return False
+
 def isValidLength(input, maxLength):
    return len(input) <= maxLength
 
@@ -535,36 +544,38 @@ def search(truckName):
 
 @app.route("/<truckName>/ingredients", methods=['GET', 'POST'])
 def ingredientManager(truckName):
-   # Determine if we need to add a new ingredient.
-   if (request.method == 'POST'):
-      ingredientName = request.form['ingredientName']
-      if (ingredientName != '' and str.isspace(ingredientName) == False):
-         print('New Ingredient: {0}'.format(ingredientName))
+   # Make sure the truck name is valid.
+   if (isValidTruck(truckName)):
+      # Determine if we need to add a new ingredient.
+      if (request.method == 'POST'):
+         ingredientName = request.form['ingredientName']
 
-         # Put it in the database.
-         ingredient = [
-            (ingredientName)
-         ]
+         # Make sure the ingredient name isn't just whitespace or an empty string.
+         if (ingredientName != '' and str.isspace(ingredientName) == False):
+            # Make sure it is the right length and new.
+            if (not isValidIngredient(ingredientName) and isValidLength(ingredientName, 30)):
+               print('New Ingredient: {0}'.format(ingredientName))
 
-         ingredient_record = ", ".join(["%s"] * len(ingredient))
+               # Put it in the database.
+               insert_query = sql.SQL('''
+                                    INSERT INTO Ingredient (Name) VALUES ({ingredientName})
+                                    ''').format(ingredientName = sql.Literal(ingredientName),)
 
-         insert_query = (f"INSERT INTO Ingredient (Name) VALUES ({ingredient_record})")
+               # Execute the INSERT command.
+               execute_query(connection, insert_query)
 
-         # Execute the INSERT command.
-         connection.rollback()
-         connection.autocommit = True
-         cursor = connection.cursor()
-         cursor.execute(insert_query, ingredient)
+      # Grab a list of all ingredients.
+      ingredients = getAllIngredients()
 
-   # Grab a list of all ingredients.
-   ingredients = getAllIngredients()
+      templateData = {
+         'name': truckName,
+         'ingredients': ingredients
+      }
 
-   templateData = {
-      'name': truckName,
-      'ingredients': ingredients
-   }
-
-   return render_template('IngredientList.html', **templateData)
+      return render_template('IngredientList.html', **templateData)
+   else:
+      # Otherwise, give them a 404.
+      return render_template('404Page.html')
 
 # Parses the selected ingredients from the form on the create meal page.
 def parseIngredients(form):

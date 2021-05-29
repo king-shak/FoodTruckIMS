@@ -3,6 +3,8 @@ import re
 from typing import DefaultDict
 from flask import Flask, render_template, redirect, url_for, request, Response, send_from_directory
 import os
+import signal
+import sys
 import json
 from flask.helpers import url_for
 from flask_socketio import SocketIO, emit
@@ -72,6 +74,15 @@ connection = create_connection(DB_NAME, USER, PASSWORD, HOST, PORT)
 # Verify the connection succeeded.
 if (connection is None):
    quit()
+
+# Now, setup our event handler for when the script is killed to close
+# the connection.
+def signal_handler(sig, frame):
+   print('Cleaning up...')
+   connection.close()
+   sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 ##################
 ### QUERY DEFS ###

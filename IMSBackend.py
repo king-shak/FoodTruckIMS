@@ -87,12 +87,16 @@ def getTruckID(truckName):
 
 # Retrieves the ID of the address of a truck given its name.
 def getAddressID(truckName):
-   select_query = '''
+   select_query = sql.SQL('''
                   SELECT Truck.AddressID
                   FROM Truck
-                  WHERE Truck.Name = '{0}'
-                  '''.format(truckName)
-   return execute_read_query(connection, select_query)[0][0]
+                  WHERE Truck.Name = {truckName}
+                  ''').format(truckName = sql.Literal(truckName),)
+   results = execute_read_query(connection, select_query)
+   if (len(results) == 0):
+      return None
+   else:
+      return results[0][0]
 
 # Retrieves the ID of a mealtype given its description.
 def getMealTypeID(mealType):
@@ -294,6 +298,9 @@ def isValidTruck(truckName):
    
    return False
 
+def isValidLength(input, maxLength):
+   return len(input) <= maxLength
+
 ###############
 ### APP DEF ###
 ###############
@@ -318,32 +325,60 @@ def index():
 
 @app.route("/<truckName>", methods=['GET', 'POST'])
 def getTruckInfo(truckName):
-   # Check if they are updating the truk data.
-   if (request.method == 'POST'):
-      # Update truck data.
-      update_query = '''
-                     UPDATE Address
-                     SET Street = '{0}', City = '{1}', State = '{2}', Zip = '{3}'
-                     WHERE Address.ID = {4}
-                     '''.format(request.form['street'], request.form['city'], request.form['state'], request.form['zip'], getAddressID(truckName))
-      execute_query(connection, update_query)
+   # First, check if is is a valid truck (the only time it won't be is if the
+   # user is trying something malicious).
+   if (isValidTruck(truckName)):
+      # Check if they are updating the truk data.
+      if (request.method == 'POST'):
+         # Grab the values from the form.
+         street = request.form['street']
+         city = request.form['city']
+         state = request.form['state']
+         zip = request.form['zip']
+         phoneNumber = request.form['phoneNumber']
+         addressID = getAddressID(truckName)
 
-      # Update phone number.
-      update_query = '''
-                     UPDATE Truck
-                     SET Number = '{0}'
-                     WHERE Truck.Name = '{1}'
-                     '''.format(request.form['phoneNumber'], truckName)
-      execute_query(connection, update_query)
+         # Make sure the truck name is valid.
+         if (addressID != None):
+            # Make sure all the attributes are valid.
+            if (isValidLength(street, 20) and isValidLength(city, 20) and isValidLength(state, 20) and isValidLength(zip, 5) and isValidLength(phoneNumber, 10)):
+               # Update truck data.
+               update_query = sql.SQL('''
+                              UPDATE Address
+                              SET Street = {street}, City = {city}, State = {state}, Zip = {zip}
+                              WHERE Address.ID = {addressID}
+                              ''').format(street = sql.Literal(street),
+                                          city = sql.Literal(city),
+                                          state = sql.Literal(state),
+                                          zip = sql.Literal(zip),
+                                          addressID = sql.Literal(addressID),)
+               execute_query(connection, update_query)
 
-   # Query the DB for the truck info.
-   truckInfo = retrieveTruckInfo(truckName)
+               # Update phone number.
+               update_query = sql.SQL('''
+                              UPDATE Truck
+                              SET Number = {phoneNumber}
+                              WHERE Truck.Name = {truckName}
+                              ''').format(phoneNumber = sql.Literal(phoneNumber),
+                                          truckName = sql.Literal(truckName),)
+               execute_query(connection, update_query)
+            else:
+               # Otherwise, redirect them from where they came from to try again.
+               return redirect(request.url)
+         else:
+            # Otherwise, return the 404 page - invlaid URL.
+            return render_template('404Page.html')
 
-   templateData = {
-      'name': truckName,
-      'truckInfo' : truckInfo
-   }
-   return render_template('FoodTruckInfo.html', **templateData)
+      # Query the DB for the truck info.
+      truckInfo = retrieveTruckInfo(truckName)
+
+      templateData = {
+         'name': truckName,
+         'truckInfo' : truckInfo
+      }
+      return render_template('FoodTruckInfo.html', **templateData)
+   else:
+      return render_template('404Page.html')
 
 @app.route("/<truckName>/menu")
 def menu(truckName):

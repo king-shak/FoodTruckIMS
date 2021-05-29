@@ -117,12 +117,16 @@ def getMealTypeID(mealType):
 
 # Retrieves the ID of a meal given its name.
 def getMealID(mealName):
-   select_query = '''
+   select_query = sql.SQL('''
                   SELECT Meal.ID
                   FROM Meal
-                  WHERE Meal.Name = '{0}'
-                  '''.format(mealName)
-   return execute_read_query(connection, select_query)[0][0]
+                  WHERE Meal.Name = {mealName}
+                  ''').format(mealName = sql.Literal(mealName))
+   results = execute_read_query(connection, select_query)
+   if (len(results) == 0):
+      return None
+   else:
+      return results[0][0]
 
 # Retrieves the ID of an ingredient given its name.
 def getIngredientID(ingredientName):
@@ -205,66 +209,78 @@ def addMealToDB(mealName, mealType, ingredients, truckName, availNumber):
    print("name: {0}, type: {1}, ingredients: {2}, truckName: {3}, availNumber: {4}".format(mealName, mealType, ingredients, truckName, availNumber))
 
    # First, create the meal entity itself.
-   connection.rollback()
-   connection.autocommit = True
-   cursor = connection.cursor()
-   cursor.execute('''
-                  INSERT INTO Meal (Name, TypeID)
-                  VALUES (%s, %s)''', (mealName, getMealTypeID(mealType)))
+   insert_query = sql.SQL('''
+                        INSERT INTO Meal (Name, TypeID)
+                        VALUES ({mealName}, {mealTypeID})''').format(mealName = sql.Literal(mealName),
+                                                                     mealTypeID = sql.Literal(getMealTypeID(mealType)),)
+   execute_query(connection, insert_query)
 
    # Link all the ingredients.
+   # All the ingredients, so we don't need to worry about injection attacks.
    mealIngredients = []
 
    mealID = getMealID(mealName)
-   for ingredient in ingredients:
-      mealIngredients.append((mealID, getIngredientID(ingredient)))
 
-   mealIngredients_records = ", ".join(["%s"] * len(mealIngredients))
+   if (mealID != None):
+      for ingredient in ingredients:
+         mealIngredients.append((mealID, getIngredientID(ingredient)))
 
-   insert_query = f'''
-                  INSERT INTO MealIngredient (MealID, IngredientID)
-                  VALUES {mealIngredients_records}
-                  '''
+      mealIngredients_records = ", ".join(["%s"] * len(mealIngredients))
 
-   connection.rollback()
-   connection.autocommit = True
-   cursor = connection.cursor()
-   cursor.execute(insert_query, mealIngredients)
+      insert_query = f'''
+                     INSERT INTO MealIngredient (MealID, IngredientID)
+                     VALUES {mealIngredients_records}
+                     '''
 
-   # Link the new meal to the current truck.
-   connection.rollback()
-   connection.autocommit = True
-   cursor = connection.cursor()
-   cursor.execute('''
-                  INSERT INTO Inventory (TruckID, MealID, Number)
-                  VALUES (%s, %s, %s)''', (getTruckID(truckName), mealID, availNumber))
+      connection.rollback()
+      connection.autocommit = True
+      cursor = connection.cursor()
+      cursor.execute(insert_query, mealIngredients)
 
-   # Link the new meal to all other trucks.
-   # First, get a list of all trucks.
-   select_query = '''
-                  SELECT Truck.ID
-                  FROM Truck
-                  '''
-   trucksIDs = execute_read_query(connection, select_query)
+      # Link the new meal to the current truck.
+      # No need to worry about injection attacks here.
+      connection.rollback()
+      connection.autocommit = True
+      cursor = connection.cursor()
+      cursor.execute('''
+                     INSERT INTO Inventory (TruckID, MealID, Number)
+                     VALUES (%s, %s, %s)''', (getTruckID(truckName), mealID, availNumber))
 
-   # Now we build the things for our query.
-   inventory = []
+      # Link the new meal to all other trucks.
+      # No need to worry about injection attacks here either - we are not using
+      # any of the provided input from the user.
 
-   for truckID in trucksIDs:
-      inventory.append((truckID, mealID, 0))
+      # First, get a list of all trucks.
+      select_query = '''
+                     SELECT Truck.ID
+                     FROM Truck
+                     '''
+      trucksIDs = execute_read_query(connection, select_query)
 
-   inventory_records = ", ".join(["%s"] * len(inventory))
+      # Now we build the things for our query.
+      inventory = []
 
-   insert_query = f'''
-                  INSERT INTO Inventory (TruckID, MealID, Number)
-                  VALUES {inventory_records}
-                  '''
-   
-   connection.rollback()
-   connection.autocommit = True
-   cursor = connection.cursor()
-   cursor.execute(insert_query, inventory)
-   # And we're done!
+      for truckID in trucksIDs:
+         inventory.append((truckID, mealID, 0))
+
+      inventory_records = ", ".join(["%s"] * len(inventory))
+
+      insert_query = f'''
+                     INSERT INTO Inventory (TruckID, MealID, Number)
+                     VALUES {inventory_records}
+                     '''
+      
+      connection.rollback()
+      connection.autocommit = True
+      cursor = connection.cursor()
+      cursor.execute(insert_query, inventory)
+
+      # And we're done!
+      # This indicates all is good and the meal was successfully added.
+      return True
+   else:
+      # This indicates there was an injection attack.
+      return False
 
 # Gets the information of a specific truck.
 def retrieveTruckInfo(truckName):
@@ -316,11 +332,20 @@ def isValidMeal(mealName):
    
    return False
 
+def isValidMealType(mealType):
+   mealTypes = getMealTypes()
+   
+   for type in mealTypes:
+      if (type[0] == mealType):
+         return True
+   
+   return False
+
 def isValidIngredient(ingredientName):
    ingredients = getAllIngredients()
 
    for ingredient in ingredients:
-      if (ingredients[0] == ingredientName):
+      if (ingredient[0] == ingredientName):
          return True
    
    return False
@@ -589,34 +614,69 @@ def parseIngredients(form):
 
 @app.route("/<truckName>/create_meal", methods=['GET', 'POST'])
 def createMeal(truckName):
-   if (request.method == 'GET'):
-      # Get the different meal types and all available ingredients.
-      mealTypes = getMealTypes()
-      availIngredients = getAllIngredients()
+   # Make sure the truck name is valid.
+   if (isValidTruck(truckName)):
+      if (request.method == 'GET'):
+         # Get the different meal types and all available ingredients.
+         mealTypes = getMealTypes()
+         availIngredients = getAllIngredients()
 
-      templateData = {
-         'name': truckName,
-         'mealTypes': mealTypes,
-         'availIngredients': availIngredients
-      }
+         templateData = {
+            'name': truckName,
+            'mealTypes': mealTypes,
+            'availIngredients': availIngredients
+         }
 
-      # Return the page for them to create the meal.
-      return render_template('CreateMeal.html', **templateData)
+         # Return the page for them to create the meal.
+         return render_template('CreateMeal.html', **templateData)
+      else:
+         # First, grab all the attributes of the meal.
+         mealName = request.form['mealName']
+         mealType = request.form['mealType']
+         availNumber = request.form['availNumber']
+         ingredients = parseIngredients(request.form)
+
+         # Attempt to parse the available number of the meal for the currently
+         # connected truck.
+         try:
+            availNumber = int(availNumber)
+         except:
+            availNumber = -1
+         
+         # Check all the attributes are valid.
+         mealNameValid = (not isValidMeal(mealName)) and (isValidLength(mealName, 20)) and (mealName != '') and (str.isspace(mealName) == False)
+         mealTypeValid = isValidMealType(mealType)
+         availNumberValid = availNumber >= 0 and availNumber <= 1000
+
+         # First, make sure we have some ingredients - you cannot have a meal without an ingredient.
+         ingredientsValid = len(ingredients) > 0
+         # If we have at least one ingredient:
+         if (ingredientsValid):
+            # Go through them all to make sure they're in the DB.
+            for ingredient in ingredients:
+               if (not isValidIngredient(ingredient)):
+                  ingredientsValid = False
+                  break
+         
+         # Only proceed to create the meal if all items are valid.
+         if (mealNameValid and mealTypeValid and availNumberValid and ingredientsValid):
+            # Create the meal.
+            # Remember, as this point everything is valid, however, we still may have an
+            # injection attack in mealName.
+            success = addMealToDB(mealName, mealType, ingredients, truckName, availNumber)
+
+            if (success):
+               # Redirect the user to the Meal Info page, selecting the new meal.
+               return redirect(url_for('meal_info', truckName=truckName, mealName=mealName))
+            else:
+               # Otherwise, there was an attempted injection attack, so redirect them back
+               # to the create meal page.
+               return redirect(request.url)
+         else:
+            # Otherwise, redirect them back to the create meal page.
+            return redirect(request.url)
    else:
-      # Create the meal, and redirect them to the meal info page with the new
-      # meal selected.
-
-      # First, grab all the attributes of the meal.
-      mealName = request.form['mealName']
-      mealType = request.form['mealType']
-      availNumber = int(request.form['availNumber'])
-      ingredients = parseIngredients(request.form)
-
-      # Create the meal.
-      addMealToDB(mealName, mealType, ingredients, truckName, availNumber)
-
-      # Redirect the user to the Meal Info page, selecting the new page.
-      return redirect(url_for('meal_info', truckName=truckName, mealName=mealName))
+      return render_template('404Page.html')
 
 if __name__ == "__main__":
    socketio.run(app, debug=True)

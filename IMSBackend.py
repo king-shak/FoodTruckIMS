@@ -499,6 +499,7 @@ def onDisconnect():
 
 @app.route("/<truckName>/search", methods=['GET', 'POST'])
 def search(truckName):
+   # First, check the truck name is valid.
    if (isValidTruck(truckName)):
 
       templateData = {

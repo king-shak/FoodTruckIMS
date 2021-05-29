@@ -268,12 +268,12 @@ def addMealToDB(mealName, mealType, ingredients, truckName, availNumber):
 
 # Gets the information of a specific truck.
 def retrieveTruckInfo(truckName):
-   select_query = '''
+   select_query = sql.SQL('''
                   SELECT Truck.Number, Address.Street, Address.City, Address.State, Address.Zip
                   FROM Truck
                      JOIN Address ON (Truck.AddressID = Address.ID)
-                  WHERE Truck.Name = '{0}'
-                  '''.format(truckName)
+                  WHERE Truck.Name = {truckName}
+                  ''').format(truckName = sql.Literal(truckName))
    return execute_read_query(connection, select_query)
 
 # Gets the names of all the trucks in the fleet.

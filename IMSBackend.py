@@ -492,6 +492,38 @@ def meal_info(truckName, mealName):
    else:
       return render_template('404Page.html')
 
+@app.route("/<truckName>/delete_meal/<mealName>")
+def removeMeal(truckName, mealName):
+   # Make sure the truck and meal are valid.
+   if (isValidTruck(truckName) and isValidMeal(mealName)):
+      mealID = getMealID(mealName)
+
+      # Remove all MealIngredient entities.
+      remove_query = sql.SQL('''
+                              DELETE FROM MealIngredient
+                              WHERE MealID = {mealID}
+                              ''').format(mealID = sql.Literal(mealID))
+      execute_query(connection, remove_query)
+
+      # Remove all Inventory entities.
+      remove_query = sql.SQL('''
+                              DELETE FROM Inventory
+                              WHERE MealID = {mealID}
+                              ''').format(mealID = sql.Literal(mealID))
+      execute_query(connection, remove_query)
+
+      # Remove the meal itself.
+      remove_query = sql.SQL('''
+                              DELETE FROM Meal
+                              WHERE ID = {mealID}
+                              ''').format(mealID = sql.Literal(mealID))
+      execute_query(connection, remove_query)
+
+      # Redirect back to meal info.
+      return redirect(url_for('meal_info', truckName=truckName, mealName='def'))
+   else:
+      return render_template('404Page.html')
+
 @socketio.on('connect', namespace='/meal')
 def onConnect():
    print('Client connected to namespace meal')

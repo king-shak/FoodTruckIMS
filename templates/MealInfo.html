@@ -16,20 +16,33 @@
             {% endif %}
             
          {% endfor %}
-         </select></h1></p>
+         </select>
+      </h1></p>
+
       <h1 style="font-size=40px">Meal Type: {{ chosen_meal_info[0][1] }}</h1>
+      
       <h1 style="font-size=40px">Available Number:
          <button id="decrement" type="button" onclick="decrement()" style="height:30px;width:30px;font-size:20px;font-family:Garamond;background-color:white;color:#336699"><strong>-</strong></button>
          <input type="text" id="availNum" name="availNum" onchange="availNumCallback(this.value)" />
          <button id="increment" type="button" onclick="increment()" style="height:30px;width:30px;font-size:20px;font-family:Garamond;background-color:white;color:#336699"><strong>+</strong></button>
       </h1>
+
       <h1 style="font-size=40px">Ingredients: </h1>
       <ul>
          {% for ingredient in ingredients %}
             <li>{{ ingredient[0] }}</li>
          {% endfor %}
       </ul>
-      <center><a href="/{{ name }}/menu"><button style="height:40px;width:80px;font-size:20px;background-color:white;color:#336699" type="submit">Menu</button></a></center>
+
+      <a href="/{{ name }}/delete_meal/{{ chosenMeal }}">
+         <button style="height:40px;width:130px;font-size:20px;background-color:white;color:#336699">Delete Meal</button>
+      </a>
+
+      <center>
+         <a href="/{{ name }}/menu">
+            <button style="height:40px;width:80px;font-size:20px;background-color:white;color:#336699">Menu</button>
+         </a>
+      </center>
 
       <script type="text/javascript">
          console.log('connecting to websocket...');

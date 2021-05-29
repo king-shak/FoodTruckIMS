@@ -136,13 +136,13 @@ def getAllIngredients():
 
 # Get all ingredients for a specific meal.
 def getIngredients(mealName):
-   select_query = '''
+   select_query = sql.SQL('''
                   SELECT Ingredient.Name
                   FROM Meal
                      JOIN MealIngredient ON (Meal.ID = MealIngredient.MealID)
                      JOIN Ingredient ON (MealIngredient.IngredientID = Ingredient.ID)
-                  WHERE Meal.Name = '{0}'
-                  '''.format(mealName)
+                  WHERE Meal.Name = {mealName}
+                  ''').format(mealName = sql.Literal(mealName),)
    return execute_read_query(connection, select_query)
 
 # Get a list of all meals in the system.
@@ -156,14 +156,15 @@ def getMeals():
 
 # Get the information for a meal for a certian truck.
 def getMealInfo(truckName, mealName):
-   select_query = '''
+   select_query = sql.SQL('''
                   SELECT Meal.Name, MealType.Description, Inventory.Number
                   FROM Truck
                      JOIN Inventory ON (Truck.ID = Inventory.TruckID)
                      JOIN Meal ON (Inventory.MealID = Meal.ID)
                      JOIN MealType ON (Meal.TypeID = MealType.ID)
-                  WHERE Truck.Name = '{0}' AND Meal.Name = '{1}'
-                  '''.format(truckName, mealName)
+                  WHERE Truck.Name = {truckName} AND Meal.Name = {mealName}
+                  ''').format(truckName = sql.Literal(truckName),
+                              mealName = sql.Literal(mealName),)
    return execute_read_query(connection, select_query)
 
 # Get all the different meal types in the DB.
@@ -298,6 +299,15 @@ def isValidTruck(truckName):
    
    return False
 
+def isValidMeal(mealName):
+   meals = getMeals()
+   
+   for meal in meals:
+      if (meal[0] == mealName):
+         return True
+   
+   return False
+
 def isValidLength(input, maxLength):
    return len(input) <= maxLength
 
@@ -410,29 +420,40 @@ def fleet(truckName):
 
 @app.route("/<truckName>/meal_info/<mealName>")
 def meal_info(truckName, mealName):
-   # Query the DB for a list of all meals for the dropdown.
-   meals = getMeals()
+   print("url: {0}".format(request.url))
+   print("url_root: {0}".format(request.url_root))
+   print("base_url: {0}".format(request.base_url))
+   print("host_url: {0}".format(request.host_url))
+   print("root_url: {0}".format(request.root_url))
+   # First, make sure the truck name is valid.
+   if (isValidTruck(truckName)):
+      # Query the DB for a list of all meals for the dropdown.
+      meals = getMeals()
 
-   # Query the DB for info on the selected meal.
-   if (mealName == "def"):
-      # We were taken here from the menu, so just choose the first meal in the
-      # list.
-      mealName = meals[0][0]
-   
-   # Get the information and ingredients for the selected meal.
-   chosen_meal_info = getMealInfo(truckName, mealName)
-   ingredients = getIngredients(mealName)
+      # Query the DB for info on the selected meal.
+      if (mealName == "def" or not isValidMeal(mealName)):
+         # We were taken here from the menu, so just choose the first meal in the
+         # list.
+         # Or, the meal name is valid. Could be an injection attack or just bad
+         # input.
+         mealName = meals[0][0]
+      
+      # Get the information and ingredients for the selected meal.
+      chosen_meal_info = getMealInfo(truckName, mealName)
+      ingredients = getIngredients(mealName)
 
-   # Return the rendered template.
-   templateData = {
-      'name' : truckName,
-      'chosenMeal': mealName,
-      'meals': meals,
-      'chosen_meal_info': chosen_meal_info,
-      'ingredients': ingredients
-   }
+      # Return the rendered template.
+      templateData = {
+         'name' : truckName,
+         'chosenMeal': mealName,
+         'meals': meals,
+         'chosen_meal_info': chosen_meal_info,
+         'ingredients': ingredients
+      }
 
-   return render_template('MealInfo.html', **templateData)
+      return render_template('MealInfo.html', **templateData)
+   else:
+      return render_template('404Page.html')
 
 @socketio.on('connect', namespace='/meal')
 def onConnect():
@@ -442,19 +463,35 @@ def onConnect():
 def updateInventory(data):
    data = json.loads(data)
 
-   # Grab the ID of the truck and meal.
-   truckID = getTruckID(data['truckName'])
-   mealID = getMealID(data['mealName'])
+   # Grab the data.
+   truckName = data['truckName']
+   mealName = data['mealName']
+   newInventory = data['updatedInventory']
 
-   # Update the inventory in the DB.
-   update_query = '''
-                  UPDATE Inventory
-                  SET Number = {0}
-                  WHERE TruckID = {1} AND MealID = {2}
-                  '''.format(data['updatedInventory'], truckID, mealID)
-   execute_query(connection, update_query)
+   try:
+      newInventory = int(newInventory)
+   except:
+      newInventory = -1
 
-   print("Updated {0}'s inventory of {1} to be {2}".format(data['truckName'], data['mealName'], data['updatedInventory']))
+   newInventoryWithinRange = newInventory >= 0 and newInventory <= 1000
+
+   # Verify the data is valid.
+   if (isValidTruck(truckName) and isValidMeal(mealName) and newInventoryWithinRange):
+      # Grab the ID of the truck and meal.
+      truckID = getTruckID(truckName)
+      mealID = getMealID(mealName)
+
+      # Update the inventory in the DB.
+      update_query = sql.SQL('''
+                     UPDATE Inventory
+                     SET Number = {newInventory}
+                     WHERE TruckID = {truckID} AND MealID = {mealID}
+                     ''').format(newInventory = sql.Literal(newInventory),
+                                 truckID = sql.Literal(truckID),
+                                 mealID = sql.Literal(mealID),)
+      execute_query(connection, update_query)
+
+      print("Updated {0}'s inventory of {1} to be {2}".format(truckName, mealName, newInventory))
 
 @socketio.on('disconnect', namespace='/meal')
 def onDisconnect():

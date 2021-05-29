@@ -7,7 +7,7 @@ import json
 from flask.helpers import url_for
 from flask_socketio import SocketIO, emit
 import psycopg2
-from psycopg2 import OperationalError
+from psycopg2 import OperationalError, sql
 
 os.environ["GEVENT_SUPPORT"] = 'True'
 
@@ -173,15 +173,17 @@ def getMealTypes():
 
 # Search for meals given the specified search query across the entire fleet.
 def mealFleetSearch(searchQuery):
-   select_query = '''
+   searchQuery = searchQuery.strip()
+   searchQuery = '%' + searchQuery + '%'
+   select_query = sql.SQL('''
                   SELECT Truck.Name, Meal.Name, Inventory.Number, Address.Street, Address.City, Address.State, Address.Zip
                   FROM Truck
                      JOIN Address ON (Truck.AddressID = Address.ID)
                      JOIN Inventory ON (Truck.ID = Inventory.TruckID)
                      JOIN Meal ON (Inventory.MealID = Meal.ID)
-                  WHERE Meal.Name ILIKE '%{0}%'
+                  WHERE Meal.Name ILIKE {searchQuery}
                   ORDER BY Truck.Name ASC
-                  '''.format(searchQuery.strip())
+                  ''').format(searchQuery = sql.Literal(searchQuery),)
    return execute_read_query(connection, select_query)
 
 # Creates a meal given its attributes and links it to all trucks.
@@ -279,6 +281,18 @@ def getAllTrucksInfo():
                   ORDER BY Truck.Name ASC;
                   '''
    return execute_read_query(connection, select_query)
+
+######################
+### HELPER METHODS ###
+######################
+def isValidTruck(truckName):
+   fleet = getFleet()
+
+   for truck in fleet:
+      if (truck[0] == truckName):
+         return True
+   
+   return False
 
 ###############
 ### APP DEF ###
@@ -405,26 +419,30 @@ def onDisconnect():
 
 @app.route("/<truckName>/search", methods=['GET', 'POST'])
 def search(truckName):
-   templateData = {
-      'name': truckName,
-      'searchQuery': None,
-      'searchResults': None
-   }
+   if (isValidTruck(truckName)):
 
-   if (request.method == 'POST'):
-      searchQuery = request.form['query']
+      templateData = {
+         'name': truckName,
+         'searchQuery': None,
+         'searchResults': None
+      }
 
-      if (searchQuery != '' and str.isspace(searchQuery) == False):
-         templateData['searchQuery'] = searchQuery
-         print('Query: {0}'.format(searchQuery))
+      if (request.method == 'POST'):
+         searchQuery = request.form['query']
 
-         # Perform the search
-         searchResults = mealFleetSearch(searchQuery)
+         if (searchQuery != '' and str.isspace(searchQuery) == False):
+            templateData['searchQuery'] = searchQuery
+            print('Query: {0}'.format(searchQuery))
 
-         if (len(searchResults) > 0):
-            templateData['searchResults'] = searchResults
+            # Perform the search
+            searchResults = mealFleetSearch(searchQuery)
 
-   return render_template('Search.html', **templateData)
+            if (len(searchResults) > 0):
+               templateData['searchResults'] = searchResults
+
+      return render_template('Search.html', **templateData)
+   else:
+      return render_template('404Page.html')
 
 @app.route("/<truckName>/ingredients", methods=['GET', 'POST'])
 def ingredientManager(truckName):

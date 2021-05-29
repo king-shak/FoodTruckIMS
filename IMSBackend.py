@@ -78,12 +78,16 @@ if (connection is None):
 ##################
 # Retrieves the ID of a truck given its name.
 def getTruckID(truckName):
-   select_query = '''
+   select_query = sql.SQL('''
                   SELECT Truck.ID
                   FROM Truck
-                  WHERE Truck.Name = '{0}'
-                  '''.format(truckName)
-   return execute_read_query(connection, select_query)[0][0]
+                  WHERE Truck.Name = {truckName}
+                  ''').format(truckName = sql.Literal(truckName),)
+   results = execute_read_query(connection, select_query)
+   if (len(results) == 0):
+      return None
+   else:
+      return results[0][0]
 
 # Retrieves the ID of the address of a truck given its name.
 def getAddressID(truckName):
@@ -100,12 +104,16 @@ def getAddressID(truckName):
 
 # Retrieves the ID of a mealtype given its description.
 def getMealTypeID(mealType):
-   select_query = '''
+   select_query = sql.SQL('''
                   SELECT MealType.ID
                   FROM MealType
-                  WHERE MealType.Description = '{0}'
-                  '''.format(mealType)
-   return execute_read_query(connection, select_query)[0][0]
+                  WHERE MealType.Description = {mealType}
+                  ''').format(mealType = sql.Literal(mealType),)
+   results = execute_read_query(connection, select_query)
+   if (len(results) == 0):
+      return None
+   else:
+      return results[0][0]
 
 # Retrieves the ID of a meal given its name.
 def getMealID(mealName):

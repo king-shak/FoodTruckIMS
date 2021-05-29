@@ -462,11 +462,6 @@ def fleet(truckName):
 
 @app.route("/<truckName>/meal_info/<mealName>")
 def meal_info(truckName, mealName):
-   print("url: {0}".format(request.url))
-   print("url_root: {0}".format(request.url_root))
-   print("base_url: {0}".format(request.base_url))
-   print("host_url: {0}".format(request.host_url))
-   print("root_url: {0}".format(request.root_url))
    # First, make sure the truck name is valid.
    if (isValidTruck(truckName)):
       # Query the DB for a list of all meals for the dropdown.

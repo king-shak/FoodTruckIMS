@@ -12,7 +12,7 @@
       <h1 style="font-size=40px">Ingredients Available: </h1>
       <ul>
          {% for ingredient in ingredients %}
-            <li>{{ ingredient[0] }}</li>
+            <li>{{ ingredient[0] }} - <a href="/{{ name }}/delete_ingredient/{{ ingredient[0] }}">remove</a></li>
          {% endfor %}
       </ul>
       <p><center><a href="/{{ name }}/menu"><button style="height:50px;width:200px;font-size:30px;background-color:white;color:#336699">Menu</button></a></p>

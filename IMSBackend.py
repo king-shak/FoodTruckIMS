@@ -130,12 +130,16 @@ def getMealID(mealName):
 
 # Retrieves the ID of an ingredient given its name.
 def getIngredientID(ingredientName):
-   select_query = '''
+   select_query = sql.SQL('''
                   SELECT Ingredient.ID
                   FROM Ingredient
-                  WHERE Ingredient.Name = '{0}'
-                  '''.format(ingredientName)
-   return execute_read_query(connection, select_query)[0][0]
+                  WHERE Ingredient.Name = {ingredientName}
+                  ''').format(ingredientName = sql.Literal(ingredientName))
+   results = execute_read_query(connection, select_query)
+   if (len(results) == 0):
+      return None
+   else:
+      return results[0][0]
 
 # Get all ingredients in the system.
 def getAllIngredients():
@@ -364,6 +368,11 @@ socketio = SocketIO(app)
 def favicon(): 
     return send_from_directory(os.path.join(app.root_path, 'static'), 'foodtruck.png', mimetype='image/vnd.microsoft.icon')
 
+# Event handler for the 404 page - in case we missed something.
+@app.errorhandler(404)
+def page_not_found(error):
+   return render_template('404Page.html'), 404
+
 # Event handler for the main page.
 @app.route("/")
 def index():
@@ -419,7 +428,7 @@ def getTruckInfo(truckName):
                return redirect(request.url)
          else:
             # Otherwise, return the 404 page - invlaid URL.
-            return render_template('404Page.html')
+            return render_template('404Page.html'), 404
 
       # Query the DB for the truck info.
       truckInfo = retrieveTruckInfo(truckName)
@@ -430,7 +439,7 @@ def getTruckInfo(truckName):
       }
       return render_template('FoodTruckInfo.html', **templateData)
    else:
-      return render_template('404Page.html')
+      return render_template('404Page.html'), 404
 
 @app.route("/<truckName>/menu")
 def menu(truckName):
@@ -442,7 +451,7 @@ def menu(truckName):
 
       return render_template('Menu.html', **templateData)
    else:
-      return render_template('404Page.html')
+      return render_template('404Page.html'), 404
 
 @app.route("/<truckName>/fleet")
 def fleet(truckName):
@@ -458,7 +467,7 @@ def fleet(truckName):
 
       return render_template('Fleet.html', **templateData)
    else:
-      return render_template('404Page.html')
+      return render_template('404Page.html'), 404
 
 @app.route("/<truckName>/meal_info/<mealName>")
 def meal_info(truckName, mealName):
@@ -490,7 +499,7 @@ def meal_info(truckName, mealName):
 
       return render_template('MealInfo.html', **templateData)
    else:
-      return render_template('404Page.html')
+      return render_template('404Page.html'), 404
 
 @app.route("/<truckName>/delete_meal/<mealName>")
 def removeMeal(truckName, mealName):
@@ -522,7 +531,7 @@ def removeMeal(truckName, mealName):
       # Redirect back to meal info.
       return redirect(url_for('meal_info', truckName=truckName, mealName='def'))
    else:
-      return render_template('404Page.html')
+      return render_template('404Page.html'), 404
 
 @socketio.on('connect', namespace='/meal')
 def onConnect():
@@ -592,7 +601,7 @@ def search(truckName):
 
       return render_template('Search.html', **templateData)
    else:
-      return render_template('404Page.html')
+      return render_template('404Page.html'), 404
 
 @app.route("/<truckName>/ingredients", methods=['GET', 'POST'])
 def ingredientManager(truckName):
@@ -627,7 +636,32 @@ def ingredientManager(truckName):
       return render_template('IngredientList.html', **templateData)
    else:
       # Otherwise, give them a 404.
-      return render_template('404Page.html')
+      return render_template('404Page.html'), 404
+
+@app.route("/<truckName>/delete_ingredient/<ingredientName>")
+def removeIngredient(truckName, ingredientName):
+   # Make sure the truck and ingredient are valid.
+   if (isValidTruck(truckName) and isValidIngredient(ingredientName)):
+      ingredientID = getIngredientID(ingredientName)
+
+      # Remove all MealIngredient entities.
+      remove_query = sql.SQL('''
+                              DELETE FROM MealIngredient
+                              WHERE IngredientID = {ingredientID}
+                              ''').format(ingredientID = sql.Literal(ingredientID))
+      execute_query(connection, remove_query)
+
+      # Remove the ingredient itself.
+      remove_query = sql.SQL('''
+                              DELETE FROM Ingredient
+                              WHERE ID = {ingredientID}
+                              ''').format(ingredientID = sql.Literal(ingredientID))
+      execute_query(connection, remove_query)
+
+      # Redirect back to the ingredient manager.
+      return redirect(url_for('ingredientManager', truckName=truckName))
+   else:
+      return render_template('404Page.html'), 404
 
 # Parses the selected ingredients from the form on the create meal page.
 def parseIngredients(form):
@@ -703,7 +737,7 @@ def createMeal(truckName):
             # Otherwise, redirect them back to the create meal page.
             return redirect(request.url)
    else:
-      return render_template('404Page.html')
+      return render_template('404Page.html'), 404
 
 if __name__ == "__main__":
    socketio.run(app, debug=True)

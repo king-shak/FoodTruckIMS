@@ -382,11 +382,15 @@ def getTruckInfo(truckName):
 
 @app.route("/<truckName>/menu")
 def menu(truckName):
-   templateData = {
-      'name': truckName
-   }
+   # First, make sure the truck name is valid.
+   if (isValidTruck(truckName)):
+      templateData = {
+         'name': truckName
+      }
 
-   return render_template('Menu.html', **templateData)
+      return render_template('Menu.html', **templateData)
+   else:
+      return render_template('404Page.html')
 
 @app.route("/<truckName>/fleet")
 def fleet(truckName):

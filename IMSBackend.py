@@ -751,4 +751,4 @@ def createMeal(truckName):
       return render_template('404Page.html'), 404
 
 if __name__ == "__main__":
-   socketio.run(app, debug=True)
+   socketio.run(app, host="0.0.0.0", debug=True)

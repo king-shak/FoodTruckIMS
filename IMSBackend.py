@@ -17,7 +17,7 @@ os.environ["GEVENT_SUPPORT"] = 'True'
 ### CREDENTIALS FOR THE DB ###
 ##############################
 DB_NAME = "project"
-USER = "postgres"
+USER = "pi"
 PASSWORD = "foobar"
 HOST = "127.0.0.1"
 PORT = 5432

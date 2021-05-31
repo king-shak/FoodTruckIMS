@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+   </head>
+   <body style="background-color:#ffeecc;">
+      <left-align><a href="/"><img src={{ url_for('static', filename="foodtruck.png") }} alt="foodtruck" width="300" height="300"></a>
+      <center><h1 style="color:#336699;font-family:Garamond;font-size:60px">Meal Information</h1></center>
+      <p><h1>Select Meal:
+         <select style="width:300px;height:40px;font-size:20px" onchange="location = this.value">
+         {% for meal in meals %}
+            {% if meal[0] == chosenMeal %}
+               <option value="/{{ name }}/meal_info/{{ meal[0] }}" selected>{{ meal[0] }}</option>
+            {% else %}
+               <option value="/{{ name }}/meal_info/{{ meal[0] }}">{{ meal[0] }}</option>
+            {% endif %}
+            
+         {% endfor %}
+         </select>
+      </h1></p>
+
+      <h1 style="font-size=40px">Meal Type: {{ chosen_meal_info[0][1] }}</h1>
+      
+      <h1 style="font-size=40px">Available Number:
+         <button id="decrement" type="button" onclick="decrement()" style="height:30px;width:30px;font-size:20px;font-family:Garamond;background-color:white;color:#336699"><strong>-</strong></button>
+         <input type="text" id="availNum" name="availNum" onchange="availNumCallback(this.value)" />
+         <button id="increment" type="button" onclick="increment()" style="height:30px;width:30px;font-size:20px;font-family:Garamond;background-color:white;color:#336699"><strong>+</strong></button>
+      </h1>
+
+      <h1 style="font-size=40px">Ingredients: </h1>
+      <ul>
+         {% for ingredient in ingredients %}
+            <li>{{ ingredient[0] }}</li>
+         {% endfor %}
+      </ul>
+
+      <a href="/{{ name }}/delete_meal/{{ chosenMeal }}">
+         <button style="height:40px;width:130px;font-size:20px;background-color:white;color:#336699">Delete Meal</button>
+      </a>
+
+      <center>
+         <a href="/{{ name }}/menu">
+            <button style="height:40px;width:80px;font-size:20px;background-color:white;color:#336699">Menu</button>
+         </a>
+      </center>
+
+      <script type="text/javascript">
+         console.log('connecting to websocket...');
+         var socket = io('ws://foodtruckims.ddns.net:5000/meal');
+
+         var origNum = {{ chosen_meal_info[0][2] }};
+
+         // Setup the number field.
+         document.getElementById('availNum').value = origNum;
+
+         function updateInventory(newInventory)
+         {
+            var data = {'truckName': '{{ name }}', 'mealName': '{{ chosenMeal }}', 'updatedInventory': newInventory};
+            socket.emit('updateInventory', JSON.stringify(data));
+         }
+
+         // Setup our event handlers.
+         function decrement()
+         {
+            var num = Number(document.getElementById('availNum').value);
+            
+            if (num > 0)
+            {
+               num--;
+               origNum = num;
+               document.getElementById('availNum').value = num;
+               updateInventory(origNum);
+            }
+         }
+
+         function increment()
+         {
+            var num = Number(document.getElementById('availNum').value);
+            
+            if (num < 1000)
+            {
+               num++;
+               origNum = num;
+               document.getElementById('availNum').value = num;
+               updateInventory(origNum);
+            }
+         }
+
+         function availNumCallback(value)
+         {
+            var num = Number(value);
+            if (num >= 0 && num <= 1000)
+            {
+               origNum = num;
+               updateInventory(origNum);
+            }
+            else
+            {
+               document.getElementById('availNum').value = origNum;
+            }
+         }
+
+         socket.on('connect', function()
+         {
+            console.log('connected to server!');
+         });
+
+         socket.on('disconnect', function()
+         {
+            console.log('disconnected from server!');
+         });
+      </script>
+   </body>
+  </html>

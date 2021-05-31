@@ -1,2 +1,5 @@
 psycopg2-binary
 flask
+flask-socketio
+gevent
+gevent-websocket

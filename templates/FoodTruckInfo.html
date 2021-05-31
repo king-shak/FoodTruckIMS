@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+   <body style="background-color:#ffeecc;">
+      <left-align><a href="/"><img src={{ url_for('static', filename="foodtruck.png") }} alt="foodtruck" width="300" height="300"></a>
+      <center><h1 style="color:#336699;font-family:Garamond;font-size:60px">Food Truck Information</h1></center>
+      <form action="{{ url_for('getTruckInfo', truckName=name) }}" method="post">
+         <p style="font-size=40px">
+            <h1 style="font-size=40px">Truck Name: {{ name }}
+            <h1 style="font-size=40px">Location:
+               <input type="textbox" name="street" style="width:300px;height:40px;font-size:20px" value="{{ truckInfo[0][1] }}">
+               <input type="textbox" name="city" style="width:300px;height:40px;font-size:20px" value="{{ truckInfo[0][2] }}">
+               <input type="textbox" name="state" style="width:300px;height:40px;font-size:20px" value="{{ truckInfo[0][3] }}">
+               <input type="textbox" name="zip" style="width:300px;height:40px;font-size:20px" value="{{ truckInfo[0][4] }}">
+            </h1>
+         </p>
+         <h1 style="font-size=40px">Phone Number:
+            <input type="textbox" name="phoneNumber" style="width:300px;height:40px;font-size:20px" value="{{ truckInfo[0][0] }}">
+         </h1>
+         <input type="submit" style="height:40px;width:180px;font-size:20px;background-color:white;color:#336699" value="Update Truck Info">
+      </form>
+      <center><a href="/{{ name }}/menu"><button style="height:40px;width:80px;font-size:20px;background-color:white;color:#336699">Menu</button></a></center>
+   </body>
+</html>

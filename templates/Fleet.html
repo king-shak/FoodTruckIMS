@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+  <body style="background-color:#ffeecc;">
+    <left-align><a href="/"><img src={{ url_for('static', filename="foodtruck.png") }} alt="foodtruck" width="300" height="300"></a>
+      <center><h1 style="color:#336699;font-family:Garamond;font-size:60px">List of Food Trucks</h1></center>
+
+      {% for truck in fleet %}
+         <p style="border:3px; border-style:solid; border-color:#336699"><h1 style="font-size=40px">Truck: {{ truck[0] }}</h1>
+         <h1 style="font-size=40px">Location: {{ truck[2] }} {{ truck[3] }} {{ truck[4] }} {{ truck[5] }} </h1>
+         <h1 style="font-size=40px">Phone Number: {{ truck[1] }}</h1></p>
+      {% endfor %}
+
+      <center><a href="/{{ name }}/menu"><button style="height:40px;width:80px;font-size:20px;background-color:white;color:#336699" type="submit">Menu</button></a></center>
+    </body>
+  </html>

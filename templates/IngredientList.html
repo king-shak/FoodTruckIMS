@@ -1,12 +1,20 @@
 <!DOCTYPE html>
 <html>
-  <body style="background-color:#ffeecc;">
-    <a href="MainPage.html"><img src="foodtruck.png" alt="foodtruck" width="300" height="300"></a>
+   <body style="background-color:#ffeecc;">
+      <a href="/"><img src={{ url_for('static', filename="foodtruck.png") }} alt="foodtruck" width="300" height="300"></a>
       <center><h1 style="color:#336699;font-family:Garamond;font-size:60px">Ingredient List</h1></center>
-      <p><h1>Add new ingredient:
-        <input type="textbox" style="width:300px;height:40px;font-size:20px">
-        <a href="IngredientList.html"><button style="height:50px;width:200px;font-size:20px;background-color:white;color:#336699">Add Ingredient</button></a></p>
-        <h1 style="font-size=40px">Ingredients Available: </h1>
-        <p><center><a href="Menu.html"><button style="height:50px;width:200px;font-size:30px;background-color:white;color:#336699">Menu</button></a></p>
-    </body>
-  </html>
+      <h1>Add new ingredient:
+         <form action="{{ url_for('ingredientManager', truckName=name) }}" method="post">
+            <input type="textbox" name="ingredientName" style="width:300px;height:40px;font-size:20px">
+            <input type="submit" style="height:50px;width:200px;font-size:20px;background-color:white;color:#336699" value="Add Ingredient">
+         </form>
+      </h1>
+      <h1 style="font-size=40px">Ingredients Available: </h1>
+      <ul>
+         {% for ingredient in ingredients %}
+            <li>{{ ingredient[0] }} - <a href="/{{ name }}/delete_ingredient/{{ ingredient[0] }}">remove</a></li>
+         {% endfor %}
+      </ul>
+      <p><center><a href="/{{ name }}/menu"><button style="height:50px;width:200px;font-size:30px;background-color:white;color:#336699">Menu</button></a></p>
+   </body>
+</html>

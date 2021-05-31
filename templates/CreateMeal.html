@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+   <body style="background-color:#ffeecc;">
+      <left-align><a href="/"><img src={{ url_for('static', filename="foodtruck.png") }} alt="foodtruck" width="300" height="300"></a>
+      <center><h1 style="color:#336699;font-family:Garamond;font-size:60px">Create New Meal</h1></center>
+
+      <form action="{{ url_for('createMeal', truckName=name) }}" method="post">
+         <p>
+            <h1>Meal:
+            <input type="textbox" name="mealName" style="width:300px;height:40px;font-size:20px">
+         </p>
+
+         <h1>Meal Type:
+            <select name="mealType" style="width:300px;height:40px;font-size:20px">
+               {% for mealType in mealTypes %}
+                  <option value="{{ mealType[0] }}">{{ mealType[0] }}</option>
+               {% endfor %}
+            </select>
+         </h1>
+
+         <p>
+            <h1>Available Number:
+            <input type="textbox" name="availNumber" style="width:300px;height:40px;font-size:20px">
+         </p>
+
+         <p>
+            <h1>Ingredients:</h1>
+            {% for ingredient in availIngredients %}
+               <input type="checkbox" id="{{ ingredient[0] }}" name="{{ ingredient[0] }}" style="width:20px;height:20px">
+                  <label for="{{ ingredient[0] }}" style="font-family:Garamond;font-size:20px">{{ ingredient[0] }}</label>
+            {% endfor %}
+         </p>
+
+         <input type=submit style="height:40px;width:150px;font-size:25px;background-color:white;color:#336699" value="Create">
+      </form>
+      <center>
+         <a href="/{{ name }}/menu"><button style="height:50px;width:200px;font-size:30px;background-color:white;color:#336699">Menu</button></a>
+      </center>
+   </body>
+</html>

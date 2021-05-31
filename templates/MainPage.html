@@ -1,22 +1,12 @@
 <!DOCTYPE html>
 <html>
   <body style="background-color:#ffeecc;">
-    <center><img src="foodtruck.png" alt="foodtruck" width="400" height="400">
+    <center><img src={{ url_for('static', filename="foodtruck.png") }} alt="foodtruck" width="400" height="400">
     <h1 style="color:#336699;font-family:Garamond;font-size:60px"> <center>Select Food Truck: </h1>
-      <!-- comment this section because its not dynamic -->
-      <center><select "name="Food Truck" id="Food Truck" style="width:300px;height:40px;font-size:20px">
-      <option value="Choose">Choose</option>
-      <option value="Truck 1: Give a name">Truck 1: Give a name</option>
-      <option value="Truck 2: Give a name">Truck 2: Give a name</option>
-      <option value="Truck 3: Give a name">Truck 3: Give a name</option>
-      <option value="Truck 4: Give a name">Truck 4: Give a name</option>
-      </select>
-      <!-- uncomment this part because its the final one -->
-        <!-- {% for item in records %}
-          <a href="foodTruckInformation.html"><button>{{item[0]}}</button>
-        {% endfor %} -->
-      <a href="foodTruckInformation.html"><button style="height:40px;width:80px;font-size:20px" type="submit">Submit</button></a>
-
-
+      <center>
+      {% for name in truckNames %}
+         <a href="/{{ name[0] }}"><button style="height:50px;width:200px;font-size:30px;font-family:Garamond;background-color:white;color:#336699">{{ name[0] }}</button></a>
+      {% endfor %}
+      </center>
   </body>
 </html>

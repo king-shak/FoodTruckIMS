@@ -1,24 +1,26 @@
 \qecho
-\qecho IT Crowd
+\qecho IT Crowd Project Database Setup
 \qecho
 
+-- Create the database.
 CREATE DATABASE project;
 \c project
 \qecho
 
+-- Create the relations.
 CREATE TABLE Address (
-	ID	Integer not null,
+	ID	Serial not null,
 	Street	VarChar(20) not null,
 	City	VarChar(20) not null,
 	State	VarChar(20) not null,
-	Zip	Integer not null,
+	Zip	VarChar(5) not null,
 	
 	Primary Key	(ID)
 );
 
 CREATE TABLE Truck (
-	ID	Integer not null,
-	AddressID	Integer not null,
+	ID	Serial not null,
+	AddressID	Serial not null,
 	Name	VarChar(30) not null unique,
 	Number	VarChar(10) not null,
 
@@ -27,25 +29,24 @@ CREATE TABLE Truck (
 );
 
 CREATE TABLE MealType (
-	ID	Integer not null,
+	ID	Serial not null,
 	Description	VarChar(30) not null,
 
 	Primary Key	(ID)
 );
 
 CREATE TABLE Meal (
-	ID	Integer not null,
-	MealNumber	VarChar(20) not null unique,
-	Name	VarChar(20) not null,
-	TypeID	Integer not null,
+	ID	Serial not null,
+	Name	VarChar(20) not null unique,
+	TypeID	Serial not null,
 
 	Primary Key	(ID),
 	Foreign Key	(TypeID) references MealType(ID)
 );
 
 CREATE TABLE Inventory (
-	TruckID	Integer not null,
-	MealID	Integer not null,
+	TruckID	Serial not null,
+	MealID	Serial not null,
 	Number	Integer not null,
 	
 	Foreign Key (TruckID) references Truck(ID),
@@ -53,20 +54,21 @@ CREATE TABLE Inventory (
 );
 
 CREATE TABLE Ingredient (
-	ID	Integer not null,
+	ID	Serial not null,
 	Name	VarChar(30) not null unique,
 
 	Primary Key	(ID)
 );
 
 CREATE TABLE MealIngredient (
-	MealID	Integer not null,
-	IngredientID	Integer not null,
+	MealID	Serial not null,
+	IngredientID	Serial not null,
 
 	Foreign Key	(MealID) references Meal(ID),
 	Foreign Key	(IngredientID) references Ingredient(ID)
 );
 
+-- Display the relations, just to be sure.
 \qecho
 \d
 
@@ -89,11 +91,180 @@ CREATE TABLE MealIngredient (
 \d Truck
 
 \qecho
-\d PhoneInfo
-
-\qecho
 \d Address
 
+-- Put some data into the database.
 \qecho
-\c postgres
-DROP DATABASE project;
+\qecho Creating Truck 1
+INSERT INTO Address (Street, City, State, Zip)
+VALUES ('Pike Street', 'Seattle', 'Washington', '98101')
+RETURNING ID AS truck_1_address_id;
+
+INSERT INTO Truck (AddressID, Name, Number)
+VALUES (1, 'Truck 1', '123-456')
+RETURNING ID AS truck_1_id;
+
+\qecho
+\qecho Creating Truck 2
+INSERT INTO Address (Street, City, State, Zip)
+VALUES ('Broadway', 'Seattle', 'Washington', '98102')
+RETURNING ID AS truck_2_address_id;
+
+INSERT INTO Truck (AddressID, Name, Number)
+VALUES (2, 'Truck 2', '789-101')
+RETURNING ID AS truck_2_id;
+
+\qecho
+\qecho Creating Truck 3
+INSERT INTO Address (Street, City, State, Zip)
+VALUES ('Alaskan Way', 'Seattle', 'Washington', '98104')
+RETURNING ID AS truck_3_address_id;
+
+INSERT INTO Truck (AddressID, Name, Number)
+VALUES (3, 'Truck 3', '112-131')
+RETURNING ID AS truck_3_id;
+
+-- Meal Types
+INSERT INTO MealType (Description)
+VALUES ('Vegan'),
+         ('Halal'),
+         ('Kosher'),
+         ('Other')
+RETURNING ID, Description AS MealType_Description;
+
+-- Ingredients
+INSERT INTO Ingredient (Name)
+Values ('Bun'),
+         ('Meat Patty'),
+         ('Veggie Patty'),
+         ('Lettuce'),
+         ('Kale'),
+         ('Cheese'),
+         ('Ketchup'),
+         ('Mustard'),
+         ('Onion'),
+         ('Potato'),
+         ('Cucumber'),
+         ('Avocado'),
+         ('Tomato'),
+         ('Bell Pepper'),
+         ('Salad Dressing')
+RETURNING ID, Name AS Ingredient_Name;
+
+-- Meals
+INSERT INTO Meal (Name, TypeID)
+VALUES ('Burger', 4),
+         ('Veggie Burger', 1),
+         ('Fries', 1),
+         ('Salad', 1)
+RETURNING ID, Name AS Meal_Name, TypeID;
+
+-- Setup the ingredients for burger and verify.
+INSERT INTO MealIngredient (MealID, IngredientID)
+VALUES (1, 1),
+         (1, 2),
+         (1, 4),
+         (1, 6),
+         (1, 7),
+         (1, 8),
+         (1, 9),
+         (1, 1);
+
+SELECT Ingredient.Name AS burger_ingredients
+FROM Meal
+   JOIN MealIngredient ON (Meal.ID = MealIngredient.MealID)
+   JOIN Ingredient ON (MealIngredient.IngredientID = Ingredient.ID)
+WHERE Meal.Name = 'Burger';
+
+-- Setup the ingredients for veggie burger and verify.
+INSERT INTO MealIngredient (MealID, IngredientID)
+VALUES (2, 1),
+         (2, 3),
+         (2, 4),
+         (2, 6),
+         (2, 7),
+         (2, 8),
+         (2, 9),
+         (2, 1);
+
+SELECT Ingredient.Name AS veggie_burger_ingredients
+FROM Meal
+   JOIN MealIngredient ON (Meal.ID = MealIngredient.MealID)
+   JOIN Ingredient ON (MealIngredient.IngredientID = Ingredient.ID)
+WHERE Meal.Name = 'Veggie Burger';
+
+-- Setup the ingredients for fries and verify.
+INSERT INTO MealIngredient (MealID, IngredientID)
+VALUES (3, 10);
+
+SELECT Ingredient.Name AS fries_ingredients
+FROM Meal
+   JOIN MealIngredient ON (Meal.ID = MealIngredient.MealID)
+   JOIN Ingredient ON (MealIngredient.IngredientID = Ingredient.ID)
+WHERE Meal.Name = 'Fries';
+
+-- Setup the ingredients for salad and verify.
+INSERT INTO MealIngredient (MealID, IngredientID)
+VALUES (4, 4),
+         (4, 11),
+         (4, 9),
+         (4, 12),
+         (4, 13),
+         (4, 14),
+         (4, 15);
+
+SELECT Ingredient.Name AS salad_ingredients
+FROM Meal
+   JOIN MealIngredient ON (Meal.ID = MealIngredient.MealID)
+   JOIN Ingredient ON (MealIngredient.IngredientID = Ingredient.ID)
+WHERE Meal.Name = 'Salad';
+
+-- Connect meals to each truck.
+-- Truck 1
+\qecho Truck 1 Meals
+INSERT INTO Inventory(TruckID, MealID, Number)
+VALUES (1, 1, 50),
+         (1, 2, 30),
+         (1, 3, 70),
+         (1, 4, 30);
+
+SELECT Meal.Name, Inventory.Number
+FROM Truck
+   JOIN Inventory ON (Truck.ID = Inventory.TruckID)
+   JOIN Meal ON (Inventory.MealID = Meal.ID)
+WHERE Truck.Name = 'Truck 1';
+
+-- Truck 2
+\qecho Truck 2 Meals
+INSERT INTO Inventory(TruckID, MealID, Number)
+VALUES (2, 1, 80),
+         (2, 2, 50),
+         (2, 3, 110),
+         (2, 4, 50);
+
+SELECT Meal.Name, Inventory.Number
+FROM Truck
+   JOIN Inventory ON (Truck.ID = Inventory.TruckID)
+   JOIN Meal ON (Inventory.MealID = Meal.ID)
+WHERE Truck.Name = 'Truck 2';
+
+-- Truck 3
+\qecho Truck 3 Meals
+INSERT INTO Inventory(TruckID, MealID, Number)
+VALUES (3, 1, 20),
+         (3, 2, 10),
+         (3, 3, 25),
+         (3, 4, 10);
+
+SELECT Meal.Name, Inventory.Number
+FROM Truck
+   JOIN Inventory ON (Truck.ID = Inventory.TruckID)
+   JOIN Meal ON (Inventory.MealID = Meal.ID)
+WHERE Truck.Name = 'Truck 3';
+
+SELECT Meal.Name, MealType.Description AS Type
+FROM MEAL
+   JOIN MealType ON (Meal.TypeID = MealType.ID);
+
+\qecho
+\qecho done!

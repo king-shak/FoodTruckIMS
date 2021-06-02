@@ -339,10 +339,11 @@ def isValidTruck(truckName):
    return False
 
 def isValidMeal(mealName):
+   mealName = mealName.lower()
    meals = getMeals()
    
    for meal in meals:
-      if (meal[0] == mealName):
+      if (meal[0].lower() == mealName):
          return True
    
    return False
@@ -357,10 +358,11 @@ def isValidMealType(mealType):
    return False
 
 def isValidIngredient(ingredientName):
+   ingredientName = ingredientName.lower()
    ingredients = getAllIngredients()
 
    for ingredient in ingredients:
-      if (ingredient[0] == ingredientName):
+      if (ingredient[0].lower() == ingredientName):
          return True
    
    return False

@@ -482,6 +482,9 @@ def fleet(truckName):
    else:
       return render_template('404Page.html'), 404
 
+def cleanHostURL(rawURL):
+   return 'ws:' + rawURL[rawURL.find('//'):] + 'meal'
+
 @app.route("/<truckName>/meal_info/<mealName>")
 def meal_info(truckName, mealName):
    # First, make sure the truck name is valid.
@@ -507,7 +510,8 @@ def meal_info(truckName, mealName):
          'chosenMeal': mealName,
          'meals': meals,
          'chosen_meal_info': chosen_meal_info,
-         'ingredients': ingredients
+         'ingredients': ingredients,
+         'hostURL': cleanHostURL(request.host_url)
       }
 
       return render_template('MealInfo.html', **templateData)

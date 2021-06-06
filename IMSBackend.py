@@ -586,6 +586,8 @@ def updateInventory(data):
                                  mealID = sql.Literal(mealID),)
       execute_query(connection, update_query)
 
+      emit('newVal', json.dumps({'truckName': truckName, 'mealName': mealName, 'newVal': newInventory}), broadcast=True, include_self=False)
+
       print("Updated {0}'s inventory of {1} to be {2}".format(truckName, mealName, newInventory))
 
 @socketio.on('disconnect', namespace='/meal')

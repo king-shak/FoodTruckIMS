@@ -105,6 +105,18 @@
             console.log('connected to server!');
          });
 
+         socket.on('newVal', function(data)
+         {
+            // First, make sure this is for our truck and selected meal.
+            data = JSON.parse(data);
+            if (data['truckName'] == '{{ name }}' && data['mealName'] == '{{ chosenMeal }}')
+            {
+               console.log('got a new val from the server!');
+               origNum = data['newVal'];
+               document.getElementById('availNum').value = origNum;
+            }
+         });
+
          socket.on('disconnect', function()
          {
             console.log('disconnected from server!');
